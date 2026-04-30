@@ -346,27 +346,23 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
 };
 
 export default function (context: any): void {
-	const { React: _React, hooks } = context;
+	const { hooks } = context;
 
-	hooks.addContent('SiteInfoUtilities', (site: any) => (
-		<SyncPanel key="hetzner-sync" site={site} />
-	));
+	hooks.addFilter('siteInfoToolsItem', (items: any[]) => {
+		const hetznerSyncItems = [
+			{
+				path: '/hetznerSync',
+				menuItem: 'Hetzner Sync',
+				render: ({ site }: { site: any }) => (
+					<div>
+						<SyncPanel site={site} />
+						<SettingsPanel />
+					</div>
+				),
+			},
+		];
 
-	hooks.addContent('SiteInfoOverview', (site: any) => (
-		<div key="hetzner-sync-status" style={{ padding: '8px 0', fontSize: 13, color: '#666' }}>
-			Hetzner Sync: Ready
-		</div>
-	));
-
-	const settingsContent = () => <SettingsPanel />;
-	hooks.addContent('Preferences_TabNav_Items', () => (
-		<li key="hetzner-sync-settings">
-			<a href="#hetzner-sync">Hetzner Sync</a>
-		</li>
-	));
-	hooks.addContent('Preferences_TabBody', () => (
-		<div key="hetzner-sync-prefs" id="hetzner-sync">
-			<SettingsPanel />
-		</div>
-	));
+		items.forEach((item: any) => hetznerSyncItems.push(item));
+		return hetznerSyncItems;
+	});
 }

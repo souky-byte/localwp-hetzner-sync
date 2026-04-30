@@ -1,2 +1,2 @@
-export { default as mainProcess } from './main';
-export { default as rendererProcess } from './renderer';
+export { default as main } from './main';
+export { default as renderer } from './renderer';
