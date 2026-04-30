@@ -14,6 +14,18 @@ function buildSshCommand(config: SyncConfig): string {
 	return `ssh -i ${resolveHome(config.sshKeyPath)} -p ${config.sshPort} -o StrictHostKeyChecking=accept-new -o BatchMode=yes`;
 }
 
+function emitProgressLines(buffer: Buffer, onProgress?: (line: string) => void): void {
+	const lines = buffer
+		.toString()
+		.split(/\r?\n|\r/)
+		.map((line) => line.trim())
+		.filter(Boolean);
+
+	for (const line of lines) {
+		onProgress?.(line);
+	}
+}
+
 export function rsyncPull(
 	config: SyncConfig,
 	localWpContentPath: string,
@@ -35,19 +47,48 @@ export function rsyncPull(
 
 		const proc = spawn('rsync', args, { stdio: ['ignore', 'pipe', 'pipe'] });
 		let stderr = '';
+		let settled = false;
+		let lastOutputAt = Date.now();
+		let lastProgressLine = 'rsync started';
 
-		proc.stdout.on('data', (data: Buffer) => {
-			const lines = data.toString().split('\n').filter(Boolean);
+		onProgress?.(`rsync started: ${remoteSource} -> ${localDest}`);
+
+		const idleTimer = setInterval(() => {
+			const idleMs = Date.now() - lastOutputAt;
+			if (idleMs > 120_000 && !settled) {
+				settled = true;
+				clearInterval(idleTimer);
+				proc.kill('SIGTERM');
+				reject(new Error(`rsync pull stalled after ${Math.round(idleMs / 1000)}s without output. Last output: ${lastProgressLine}. stderr: ${stderr}`));
+			}
+		}, 15_000);
+
+		const handleOutput = (data: Buffer, isStderr = false) => {
+			lastOutputAt = Date.now();
+			const text = data.toString();
+			if (isStderr) stderr += text;
+			const lines = text
+				.split(/\r?\n|\r/)
+				.map((line) => line.trim())
+				.filter(Boolean);
+
 			for (const line of lines) {
+				lastProgressLine = line;
 				onProgress?.(line);
 			}
+		};
+
+		proc.stdout.on('data', (data: Buffer) => {
+			handleOutput(data);
 		});
 
 		proc.stderr.on('data', (data: Buffer) => {
-			stderr += data.toString();
+			handleOutput(data, true);
 		});
 
 		proc.on('close', (code) => {
+			settled = true;
+			clearInterval(idleTimer);
 			if (code !== 0) {
 				reject(new Error(`rsync pull failed (exit ${code}): ${stderr}`));
 				return;
@@ -56,6 +97,8 @@ export function rsyncPull(
 		});
 
 		proc.on('error', (err) => {
+			settled = true;
+			clearInterval(idleTimer);
 			reject(new Error(`rsync pull failed to start: ${err.message}`));
 		});
 	});
@@ -84,14 +127,12 @@ export function rsyncPush(
 		let stderr = '';
 
 		proc.stdout.on('data', (data: Buffer) => {
-			const lines = data.toString().split('\n').filter(Boolean);
-			for (const line of lines) {
-				onProgress?.(line);
-			}
+			emitProgressLines(data, onProgress);
 		});
 
 		proc.stderr.on('data', (data: Buffer) => {
 			stderr += data.toString();
+			emitProgressLines(data, onProgress);
 		});
 
 		proc.on('close', (code) => {
