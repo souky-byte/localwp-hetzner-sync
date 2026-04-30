@@ -20,6 +20,7 @@ const sharedConfig = {
 	},
 	externals: {
 		'@getflywheel/local': 'commonjs @getflywheel/local',
+		'@getflywheel/local/main': 'commonjs @getflywheel/local/main',
 		'@getflywheel/local-components': 'commonjs @getflywheel/local-components',
 		react: 'commonjs react',
 		'react-dom': 'commonjs react-dom',

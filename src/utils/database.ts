@@ -21,6 +21,8 @@ function shellQuote(s: string): string {
 	return `'${s.replace(/'/g, "'\\''")}'`;
 }
 
+export type WpCliRunner = (args: string[]) => Promise<string | null>;
+
 export async function createRemoteDump(config: SyncConfig): Promise<string> {
 	const dbPass = await getRemoteDbPassword(config);
 	const remoteDumpPath = '/tmp/morskysvet-pull.sql.gz';
@@ -56,6 +58,18 @@ export async function importLocalDb(
 	try { fs.unlinkSync(sqlPath); } catch {}
 }
 
+export async function importLocalDbWithRunner(runWpCli: WpCliRunner, dumpPath: string): Promise<void> {
+	const sqlPath = dumpPath.replace(/\.gz$/, '');
+
+	if (dumpPath.endsWith('.gz')) {
+		await localExec('gunzip', ['-f', dumpPath]);
+	}
+
+	await runWpCli(['db', 'import', sqlPath]);
+
+	try { fs.unlinkSync(sqlPath); } catch {}
+}
+
 export async function searchReplaceLocal(
 	wpCliPath: string,
 	sitePath: string,
@@ -65,13 +79,31 @@ export async function searchReplaceLocal(
 	return localExec(wpCliPath, ['search-replace', from, to, '--all-tables', '--precise'], sitePath);
 }
 
+export async function searchReplaceLocalWithRunner(
+	runWpCli: WpCliRunner,
+	from: string,
+	to: string,
+): Promise<string | null> {
+	return runWpCli(['search-replace', from, to, '--all-tables', '--precise']);
+}
+
 export async function flushLocalCache(wpCliPath: string, sitePath: string): Promise<void> {
 	await localExec(wpCliPath, ['cache', 'flush'], sitePath);
+}
+
+export async function flushLocalCacheWithRunner(runWpCli: WpCliRunner): Promise<void> {
+	await runWpCli(['cache', 'flush']);
 }
 
 export async function exportLocalDb(wpCliPath: string, sitePath: string): Promise<string> {
 	const dumpPath = path.join(os.tmpdir(), 'morskysvet-push.sql');
 	await localExec(wpCliPath, ['db', 'export', dumpPath], sitePath);
+	return dumpPath;
+}
+
+export async function exportLocalDbWithRunner(runWpCli: WpCliRunner): Promise<string> {
+	const dumpPath = path.join(os.tmpdir(), 'morskysvet-push.sql');
+	await runWpCli(['db', 'export', dumpPath]);
 	return dumpPath;
 }
 

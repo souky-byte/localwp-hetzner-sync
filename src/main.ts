@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { ipcMain, BrowserWindow } from 'electron';
+import { getServiceContainer } from '@getflywheel/local/main';
 import { SyncConfig, SyncProgress, IPC_EVENTS } from './types';
 import { loadConfig, saveConfig } from './utils/config';
 import { testConnection } from './utils/ssh';
@@ -7,10 +8,10 @@ import { rsyncPull, rsyncPush } from './utils/rsync';
 import {
 	createRemoteDump,
 	downloadDump,
-	importLocalDb,
-	searchReplaceLocal,
-	flushLocalCache,
-	exportLocalDb,
+	importLocalDbWithRunner,
+	searchReplaceLocalWithRunner,
+	flushLocalCacheWithRunner,
+	exportLocalDbWithRunner,
 	uploadAndImportRemoteDb,
 	searchReplaceRemote,
 	flushRemoteCache,
@@ -34,17 +35,15 @@ function getSitePath(site: any): string {
 	return path.join(site.path, 'app', 'public');
 }
 
-function getWpCliPath(site: any): string {
-	if (site.shell?.wpCliPath) return site.shell.wpCliPath;
-	if (site.paths?.wpCli) return site.paths.wpCli;
-	return 'wp';
+function createWpCliRunner(site: any): (args: string[]) => Promise<string | null> {
+	const wpCli = getServiceContainer().cradle.wpCli;
+	return (args: string[]) => wpCli.run(site, args);
 }
 
 async function runPull(window: BrowserWindow, site: any, config: SyncConfig): Promise<void> {
 	const totalSteps = 7;
 	const localDomain = getLocalDomain(site);
-	const wpCliPath = getWpCliPath(site);
-	const sitePath = getSitePath(site);
+	const runWpCli = createWpCliRunner(site);
 	const wpContentPath = getWpContentPath(site);
 
 	sendProgress(window, { step: 1, totalSteps, label: 'Creating remote database dump...', status: 'running' });
@@ -63,31 +62,30 @@ async function runPull(window: BrowserWindow, site: any, config: SyncConfig): Pr
 	sendProgress(window, { step: 3, totalSteps, label: 'Files synced', status: 'done' });
 
 	sendProgress(window, { step: 4, totalSteps, label: 'Importing database...', status: 'running' });
-	await importLocalDb(wpCliPath, sitePath, localDumpPath);
+	await importLocalDbWithRunner(runWpCli, localDumpPath);
 	sendProgress(window, { step: 4, totalSteps, label: 'Database imported', status: 'done' });
 
 	sendProgress(window, { step: 5, totalSteps, label: 'Replacing domain...', status: 'running' });
-	await searchReplaceLocal(wpCliPath, sitePath, config.productionDomain, localDomain);
+	await searchReplaceLocalWithRunner(runWpCli, config.productionDomain, localDomain);
 	sendProgress(window, { step: 5, totalSteps, label: 'Domain replaced', status: 'done' });
 
 	sendProgress(window, { step: 6, totalSteps, label: 'Replacing protocol (https → http)...', status: 'running' });
-	await searchReplaceLocal(wpCliPath, sitePath, `https://${localDomain}`, `http://${localDomain}`);
+	await searchReplaceLocalWithRunner(runWpCli, `https://${localDomain}`, `http://${localDomain}`);
 	sendProgress(window, { step: 6, totalSteps, label: 'Protocol replaced', status: 'done' });
 
 	sendProgress(window, { step: 7, totalSteps, label: 'Flushing cache...', status: 'running' });
-	await flushLocalCache(wpCliPath, sitePath);
+	await flushLocalCacheWithRunner(runWpCli);
 	sendProgress(window, { step: 7, totalSteps, label: 'Cache flushed', status: 'done' });
 }
 
 async function runPush(window: BrowserWindow, site: any, config: SyncConfig): Promise<void> {
 	const totalSteps = 7;
 	const localDomain = getLocalDomain(site);
-	const wpCliPath = getWpCliPath(site);
-	const sitePath = getSitePath(site);
+	const runWpCli = createWpCliRunner(site);
 	const wpContentPath = getWpContentPath(site);
 
 	sendProgress(window, { step: 1, totalSteps, label: 'Exporting local database...', status: 'running' });
-	const localDumpPath = await exportLocalDb(wpCliPath, sitePath);
+	const localDumpPath = await exportLocalDbWithRunner(runWpCli);
 	sendProgress(window, { step: 1, totalSteps, label: 'Local database exported', status: 'done' });
 
 	sendProgress(window, { step: 2, totalSteps, label: 'Uploading wp-content files...', status: 'running' });
