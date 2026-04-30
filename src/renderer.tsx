@@ -202,11 +202,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
 	};
 
 	const labelStyle: React.CSSProperties = {
-		display: 'block', marginBottom: 4, fontSize: 13, fontWeight: 600,
+		display: 'block', marginBottom: 4, fontSize: 13, fontWeight: 600, color: '#333',
 	};
 	const inputStyle: React.CSSProperties = {
 		width: '100%', padding: '8px 10px', border: '1px solid #ccc',
-		borderRadius: 4, fontSize: 13, boxSizing: 'border-box',
+		borderRadius: 4, fontSize: 13, boxSizing: 'border-box', color: '#333', background: '#fff',
 	};
 	const groupStyle: React.CSSProperties = { marginBottom: 16 };
 
