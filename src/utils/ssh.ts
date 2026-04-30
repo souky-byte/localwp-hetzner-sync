@@ -20,6 +20,16 @@ function sshArgs(config: SyncConfig): string[] {
 	];
 }
 
+function scpArgs(config: SyncConfig): string[] {
+	return [
+		'-i', resolveHome(config.sshKeyPath),
+		'-P', String(config.sshPort),
+		'-o', 'StrictHostKeyChecking=accept-new',
+		'-o', 'BatchMode=yes',
+		'-o', 'ConnectTimeout=10',
+	];
+}
+
 function sshTarget(config: SyncConfig): string {
 	return `${config.sshUser}@${config.sshHost}`;
 }
@@ -42,7 +52,7 @@ export function scpDownload(config: SyncConfig, remotePath: string, localPath: s
 	return new Promise((resolve, reject) => {
 		fs.mkdirSync(path.dirname(localPath), { recursive: true });
 		const args = [
-			...sshArgs(config),
+			...scpArgs(config),
 			`${sshTarget(config)}:${remotePath}`,
 			localPath,
 		];
@@ -65,7 +75,7 @@ export function scpDownload(config: SyncConfig, remotePath: string, localPath: s
 export function scpUpload(config: SyncConfig, localPath: string, remotePath: string): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const args = [
-			...sshArgs(config),
+			...scpArgs(config),
 			localPath,
 			`${sshTarget(config)}:${remotePath}`,
 		];
