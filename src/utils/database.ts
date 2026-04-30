@@ -34,7 +34,8 @@ export async function createRemoteDump(config: SyncConfig): Promise<string> {
 }
 
 export async function downloadDump(config: SyncConfig, remotePath: string): Promise<string> {
-	const localPath = path.join(os.tmpdir(), 'morskysvet-pull.sql.gz');
+	const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'morskysvet-pull-'));
+	const localPath = path.join(tempDir, 'dump.sql.gz');
 	await scpDownload(config, remotePath, localPath);
 	return localPath;
 }

@@ -1,4 +1,6 @@
 import { execFile, ExecFileOptions } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
 import { SyncConfig } from '../types';
 import { resolveHome } from './config';
 
@@ -36,6 +38,7 @@ export function sshExec(config: SyncConfig, command: string): Promise<string> {
 
 export function scpDownload(config: SyncConfig, remotePath: string, localPath: string): Promise<void> {
 	return new Promise((resolve, reject) => {
+		fs.mkdirSync(path.dirname(localPath), { recursive: true });
 		const args = [
 			...sshArgs(config),
 			`${sshTarget(config)}:${remotePath}`,
