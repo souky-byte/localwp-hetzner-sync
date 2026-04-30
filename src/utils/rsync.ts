@@ -26,6 +26,24 @@ function emitProgressLines(buffer: Buffer, onProgress?: (line: string) => void):
 	}
 }
 
+function summarizeRsyncLine(line: string): string | null {
+	const checkMatch = line.match(/xfer#(\d+),\s*to-check=(\d+)\/(\d+)/);
+	if (checkMatch) {
+		const transferred = Number(checkMatch[1]);
+		const remaining = Number(checkMatch[2]);
+		const total = Number(checkMatch[3]);
+		const checked = total - remaining;
+		const percent = total > 0 ? Math.round((checked / total) * 100) : 0;
+		return `rsync checked ${checked}/${total} items (${percent}%), transferred ${transferred}`;
+	}
+
+	if (/^\d[\d,.]*\s+100%\s+/.test(line)) {
+		return null;
+	}
+
+	return line;
+}
+
 export function rsyncPull(
 	config: SyncConfig,
 	localWpContentPath: string,
@@ -57,7 +75,7 @@ export function rsyncPull(
 		const heartbeatTimer = setInterval(() => {
 			const idleMs = Date.now() - lastOutputAt;
 			if (idleMs > 30_000 && !settled) {
-				onProgress?.(`rsync still running (${Math.round(idleMs / 1000)}s without output). Last output: ${lastProgressLine}`);
+				onProgress?.(`rsync still running (${Math.round(idleMs / 1000)}s quiet). ${lastProgressLine}`);
 			}
 		}, 30_000);
 
@@ -71,8 +89,10 @@ export function rsyncPull(
 				.filter(Boolean);
 
 			for (const line of lines) {
-				lastProgressLine = line;
-				onProgress?.(line);
+				const summary = summarizeRsyncLine(line);
+				if (!summary) continue;
+				lastProgressLine = summary;
+				onProgress?.(summary);
 			}
 		};
 
