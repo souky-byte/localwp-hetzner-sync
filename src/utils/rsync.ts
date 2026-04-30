@@ -38,6 +38,7 @@ export function rsyncPull(
 		const args = [
 			'-avz',
 			'--delete',
+			'--force',
 			'--progress',
 			'-e', buildSshCommand(config),
 			...buildExcludeArgs(config),
@@ -53,15 +54,12 @@ export function rsyncPull(
 
 		onProgress?.(`rsync started: ${remoteSource} -> ${localDest}`);
 
-		const idleTimer = setInterval(() => {
+		const heartbeatTimer = setInterval(() => {
 			const idleMs = Date.now() - lastOutputAt;
-			if (idleMs > 120_000 && !settled) {
-				settled = true;
-				clearInterval(idleTimer);
-				proc.kill('SIGTERM');
-				reject(new Error(`rsync pull stalled after ${Math.round(idleMs / 1000)}s without output. Last output: ${lastProgressLine}. stderr: ${stderr}`));
+			if (idleMs > 30_000 && !settled) {
+				onProgress?.(`rsync still running (${Math.round(idleMs / 1000)}s without output). Last output: ${lastProgressLine}`);
 			}
-		}, 15_000);
+		}, 30_000);
 
 		const handleOutput = (data: Buffer, isStderr = false) => {
 			lastOutputAt = Date.now();
@@ -88,7 +86,7 @@ export function rsyncPull(
 
 		proc.on('close', (code) => {
 			settled = true;
-			clearInterval(idleTimer);
+			clearInterval(heartbeatTimer);
 			if (code !== 0) {
 				reject(new Error(`rsync pull failed (exit ${code}): ${stderr}`));
 				return;
@@ -98,7 +96,7 @@ export function rsyncPull(
 
 		proc.on('error', (err) => {
 			settled = true;
-			clearInterval(idleTimer);
+			clearInterval(heartbeatTimer);
 			reject(new Error(`rsync pull failed to start: ${err.message}`));
 		});
 	});
@@ -116,6 +114,7 @@ export function rsyncPush(
 		const args = [
 			'-avz',
 			'--delete',
+			'--force',
 			'--progress',
 			'-e', buildSshCommand(config),
 			...buildExcludeArgs(config),
