@@ -35,16 +35,30 @@ function getSitePath(site: any): string {
 	return path.join(site.path, 'app', 'public');
 }
 
+function getFullSite(site: any): any {
+	if (!site?.id) {
+		throw new Error('LocalWP site id is missing; cannot load full site data for WP-CLI.');
+	}
+
+	const fullSite = getServiceContainer().cradle.siteData.getSite(site.id);
+	if (!fullSite) {
+		throw new Error(`LocalWP site not found for id ${site.id}.`);
+	}
+
+	return fullSite;
+}
+
 function createWpCliRunner(site: any): (args: string[]) => Promise<string | null> {
 	const wpCli = getServiceContainer().cradle.wpCli;
 	return (args: string[]) => wpCli.run(site, args);
 }
 
 async function runPull(window: BrowserWindow, site: any, config: SyncConfig): Promise<void> {
+	const fullSite = getFullSite(site);
 	const totalSteps = 7;
-	const localDomain = getLocalDomain(site);
-	const runWpCli = createWpCliRunner(site);
-	const wpContentPath = getWpContentPath(site);
+	const localDomain = getLocalDomain(fullSite);
+	const runWpCli = createWpCliRunner(fullSite);
+	const wpContentPath = getWpContentPath(fullSite);
 
 	sendProgress(window, { step: 1, totalSteps, label: 'Creating remote database dump...', status: 'running' });
 	const remoteDumpPath = await createRemoteDump(config);
@@ -79,10 +93,11 @@ async function runPull(window: BrowserWindow, site: any, config: SyncConfig): Pr
 }
 
 async function runPush(window: BrowserWindow, site: any, config: SyncConfig): Promise<void> {
+	const fullSite = getFullSite(site);
 	const totalSteps = 7;
-	const localDomain = getLocalDomain(site);
-	const runWpCli = createWpCliRunner(site);
-	const wpContentPath = getWpContentPath(site);
+	const localDomain = getLocalDomain(fullSite);
+	const runWpCli = createWpCliRunner(fullSite);
+	const wpContentPath = getWpContentPath(fullSite);
 
 	sendProgress(window, { step: 1, totalSteps, label: 'Exporting local database...', status: 'running' });
 	const localDumpPath = await exportLocalDbWithRunner(runWpCli);
