@@ -22,6 +22,7 @@ function shellQuote(s: string): string {
 }
 
 export type WpCliRunner = (args: string[]) => Promise<string | null>;
+export type SqlImporter = (sqlPath: string) => Promise<string>;
 
 export async function createRemoteDump(config: SyncConfig): Promise<string> {
 	const dbPass = await getRemoteDbPassword(config);
@@ -66,6 +67,18 @@ export async function importLocalDbWithRunner(runWpCli: WpCliRunner, dumpPath: s
 	}
 
 	await runWpCli(['db', 'import', sqlPath]);
+
+	try { fs.unlinkSync(sqlPath); } catch {}
+}
+
+export async function importLocalDbWithImporter(importSql: SqlImporter, dumpPath: string): Promise<void> {
+	const sqlPath = dumpPath.replace(/\.gz$/, '');
+
+	if (dumpPath.endsWith('.gz')) {
+		await localExec('gunzip', ['-f', dumpPath]);
+	}
+
+	await importSql(sqlPath);
 
 	try { fs.unlinkSync(sqlPath); } catch {}
 }

@@ -8,7 +8,7 @@ import { rsyncPull, rsyncPush } from './utils/rsync';
 import {
 	createRemoteDump,
 	downloadDump,
-	importLocalDbWithRunner,
+	importLocalDbWithImporter,
 	searchReplaceLocalWithRunner,
 	flushLocalCacheWithRunner,
 	exportLocalDbWithRunner,
@@ -53,11 +53,17 @@ function createWpCliRunner(site: any): (args: string[]) => Promise<string | null
 	return (args: string[]) => wpCli.run(site, args);
 }
 
+function createSqlImporter(site: any): (sqlPath: string) => Promise<string> {
+	const importSQLFile = getServiceContainer().cradle.importSQLFile;
+	return (sqlPath: string) => importSQLFile(site, sqlPath);
+}
+
 async function runPull(window: BrowserWindow, site: any, config: SyncConfig): Promise<void> {
 	const fullSite = getFullSite(site);
 	const totalSteps = 7;
 	const localDomain = getLocalDomain(fullSite);
 	const runWpCli = createWpCliRunner(fullSite);
+	const importSql = createSqlImporter(fullSite);
 	const wpContentPath = getWpContentPath(fullSite);
 
 	sendProgress(window, { step: 1, totalSteps, label: 'Creating remote database dump...', status: 'running' });
@@ -76,7 +82,7 @@ async function runPull(window: BrowserWindow, site: any, config: SyncConfig): Pr
 	sendProgress(window, { step: 3, totalSteps, label: 'Files synced', status: 'done' });
 
 	sendProgress(window, { step: 4, totalSteps, label: 'Importing database...', status: 'running' });
-	await importLocalDbWithRunner(runWpCli, localDumpPath);
+	await importLocalDbWithImporter(importSql, localDumpPath);
 	sendProgress(window, { step: 4, totalSteps, label: 'Database imported', status: 'done' });
 
 	sendProgress(window, { step: 5, totalSteps, label: 'Replacing domain...', status: 'running' });
