@@ -1,7 +1,7 @@
 {
   "name": "localwp-hetzner-sync",
   "productName": "Hetzner Sync",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Sync WordPress sites between LocalWP and Hetzner VPS (Pull/Push)",
   "author": "Pavel Soukup",
   "keywords": [

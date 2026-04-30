@@ -4,6 +4,8 @@ import * as path from 'path';
 import { SyncConfig } from '../types';
 import { resolveHome } from './config';
 
+const SYNC_BUILD_ID = 'scp-temp-diagnostics-v1.0.6';
+
 function shellQuote(s: string): string {
 	return `'${s.replace(/'/g, "'\\''")}'`;
 }
@@ -46,7 +48,13 @@ export function scpDownload(config: SyncConfig, remotePath: string, localPath: s
 		];
 		execFile('scp', args, { timeout: 600_000 }, (err, _stdout, stderr) => {
 			if (err) {
-				reject(new Error(`SCP download failed: ${stderr || err.message}`));
+				reject(new Error([
+					`SCP download failed (${SYNC_BUILD_ID})`,
+					`remotePath=${remotePath}`,
+					`localPath=${localPath}`,
+					`localDirExists=${fs.existsSync(path.dirname(localPath))}`,
+					`stderr=${(stderr || err.message).trim()}`,
+				].join('\n')));
 				return;
 			}
 			resolve();
