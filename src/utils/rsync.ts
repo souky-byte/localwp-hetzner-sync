@@ -55,8 +55,9 @@ export function rsyncPull(
 
 		const args = [
 			'-avz',
-			'--delete',
+			'--delete-after',
 			'--force',
+			'--itemize-changes',
 			'--progress',
 			'-e', buildSshCommand(config),
 			...buildExcludeArgs(config),
@@ -133,8 +134,9 @@ export function rsyncPush(
 
 		const args = [
 			'-avz',
-			'--delete',
+			'--delete-after',
 			'--force',
+			'--itemize-changes',
 			'--progress',
 			'-e', buildSshCommand(config),
 			...buildExcludeArgs(config),
