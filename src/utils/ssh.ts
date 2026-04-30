@@ -2,6 +2,10 @@ import { execFile, ExecFileOptions } from 'child_process';
 import { SyncConfig } from '../types';
 import { resolveHome } from './config';
 
+function shellQuote(s: string): string {
+	return `'${s.replace(/'/g, "'\\''")}'`;
+}
+
 function sshArgs(config: SyncConfig): string[] {
 	return [
 		'-i', resolveHome(config.sshKeyPath),
@@ -18,7 +22,7 @@ function sshTarget(config: SyncConfig): string {
 
 export function sshExec(config: SyncConfig, command: string): Promise<string> {
 	return new Promise((resolve, reject) => {
-		const args = [...sshArgs(config), sshTarget(config), command];
+		const args = [...sshArgs(config), sshTarget(config), `bash -c ${shellQuote(command)}`];
 		const opts: ExecFileOptions = { maxBuffer: 50 * 1024 * 1024, timeout: 300_000 };
 		execFile('ssh', args, opts, (err, stdout, stderr) => {
 			if (err) {
