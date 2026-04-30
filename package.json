@@ -1,33 +1,42 @@
 {
   "name": "localwp-hetzner-sync",
+  "productName": "Hetzner Sync",
   "version": "1.0.0",
-  "description": "LocalWP addon for syncing WordPress sites with a Hetzner VPS",
+  "description": "Sync WordPress sites between LocalWP and Hetzner VPS (Pull/Push)",
+  "author": "Pavel Soukup",
+  "keywords": [
+    "local-addon"
+  ],
+  "slug": "hetzner-sync",
+  "bgColor": "#3498db",
   "private": true,
   "main": "lib/main.js",
   "renderer": "lib/renderer.js",
   "scripts": {
     "build": "webpack --config webpack.config.js",
     "watch": "webpack --config webpack.config.js --watch",
-    "lint": "eslint src/"
+    "prepare": "npm run build"
   },
-  "dependencies": {},
   "devDependencies": {
     "@getflywheel/local": "^6.0.0",
     "@getflywheel/local-components": "^6.0.0",
-    "@types/node": "^18.0.0",
-    "@types/react": "^17.0.0",
-    "@types/react-dom": "^17.0.0",
-    "css-loader": "^6.8.0",
-    "style-loader": "^3.3.0",
-    "ts-loader": "^9.4.0",
-    "typescript": "^5.0.0",
-    "webpack": "^5.88.0",
-    "webpack-cli": "^5.1.0"
+    "@types/node": "^18.19.130",
+    "@types/react": "^16.14.69",
+    "@types/react-dom": "^16.9.25",
+    "css-loader": "^6.11.0",
+    "style-loader": "^3.3.4",
+    "ts-loader": "^9.5.7",
+    "typescript": "^5.9.3",
+    "webpack": "^5.106.2",
+    "webpack-cli": "^5.1.4"
   },
   "peerDependencies": {
-    "react": "^17.0.0",
-    "react-dom": "^17.0.0",
-    "@getflywheel/local": "^6.0.0",
-    "@getflywheel/local-components": "^6.0.0"
+    "react": ">= 16.4.0",
+    "react-dom": ">= 16.4.0",
+    "@getflywheel/local": ">= 6.0.0",
+    "@getflywheel/local-components": ">= 6.0.0"
+  },
+  "engines": {
+    "local-by-flywheel": ">=6.0.0"
   }
 }

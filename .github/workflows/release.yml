@@ -1,0 +1,42 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - run: npm install --legacy-peer-deps
+
+      - run: npm run build
+
+      - name: Create release archive
+        run: |
+          mkdir -p localwp-hetzner-sync
+          cp -r lib localwp-hetzner-sync/
+          cp package.json localwp-hetzner-sync/
+          cp icon.svg localwp-hetzner-sync/
+          cp README.md localwp-hetzner-sync/
+          tar -czf localwp-hetzner-sync.tar.gz localwp-hetzner-sync
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: localwp-hetzner-sync
+          path: localwp-hetzner-sync.tar.gz
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: localwp-hetzner-sync.tar.gz
