@@ -25,7 +25,7 @@ export function sshExec(config: SyncConfig, command: string): Promise<string> {
 				reject(new Error(`SSH command failed: ${stderr || err.message}`));
 				return;
 			}
-			resolve(stdout);
+			resolve(stdout.toString());
 		});
 	});
 }
